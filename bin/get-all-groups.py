@@ -16,11 +16,11 @@ def main():
 
   conn = EC2Connection( arguments.key, arguments.secret )
   rs = conn.get_all_security_groups()
+  if arguments.csv is True:
+      print 'group_name,from_port,to_port,grant_cidr_ip,grant_name,grant_owner'
   for group in rs:
     if arguments.csv is not True:
       print group.name
-    else:
-      print 'group_name,from_port,to_port,grant_cidr_ip,grant_name,grant_owner'
     for element in group.rules:
       for ip in element.grants:
         if arguments.csv is True:
