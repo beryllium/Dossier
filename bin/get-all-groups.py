@@ -4,9 +4,12 @@ import boto
 import argparse
 import ConfigParser
 import os
+import boto.ec2
 from boto.ec2.connection import EC2Connection
 
 def main():
+  regions = boto.ec2.regions() #Probably will want to move this after the config parser, so that regions can be declared up front (current behaviour would be "regions=all")
+
   accounts = {}
   config = ConfigParser.ConfigParser()
 
@@ -31,37 +34,38 @@ def main():
   if arguments.csv is True:
     display_csv_header()
 
-  for account_name, account in accounts.iteritems():
-    rs = get_all_groups( account_name, account[ 'access' ], account['secret'] )
-    if len(rs)>0:
-      display_group( rs, account_name, arguments.csv )
+  for region in regions:
+    for account_name, account in accounts.iteritems():
+      rs = get_all_groups( account_name, account[ 'access' ], account['secret'], region )
+      if len(rs)>0:
+        display_group( rs, account_name, arguments.csv, region )
 
 
-def get_all_groups( account_name, access_key, secret_key ):
+def get_all_groups( account_name, access_key, secret_key, use_region ):
   try:
-    conn = EC2Connection( access_key, secret_key )
+    conn = EC2Connection( access_key, secret_key, region=use_region )
     rs = conn.get_all_security_groups()
   except conn.ResponseError:
-    print 'Access key rejected on account', account_name
+    print 'Access key rejected on account', account_name, 'in region', use_region
     rs = []
 
   return rs
 
-def display_group( rs, account_name = None, csv=False ):
+def display_group( rs, account_name = None, csv=False, region = None ):
   for group in rs:
     if csv is not True:
-      print "%s: %s" % ( account_name, group.name )
+      print "%s: %s (%s)" % ( account_name, group.name, region.name )
     for element in group.rules:
       for ip in element.grants:
         if csv is True:
-          print "%s,%s,%s,%s,%s,%s,%s" % ( account_name, group.name, element.from_port, element.to_port, ip.cidr_ip, ip.name, ip.owner_id )
+          print "%s,%s,%s,%s,%s,%s,%s,%s" % ( account_name, region.name, group.name, element.from_port, element.to_port, ip.cidr_ip, ip.name, ip.owner_id )
         elif element.from_port == element.to_port:
           print "\tPort: %s\tIP/CIDR: %s" % ( element.from_port, ip )
         else:
           print "\tPort: %s-%s\tIP/CIDR: %s" % ( element.from_port, element.to_port, ip )
 
 def display_csv_header():
-  print 'account_name,group_name,from_port,to_port,grant_cidr_ip,grant_name,grant_owner'
+  print 'account_name,region,group_name,from_port,to_port,grant_cidr_ip,grant_name,grant_owner'
 
 if __name__ == '__main__':
   main()
