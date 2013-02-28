@@ -33,11 +33,11 @@ To list all security groups of all accounts in your dossier.ini:
 
 To scan security groups of a single account:
 
-    bin/get-all-groups --key "mykey" --secret "mysecret"
+    bin/get-all-groups.py --key "mykey" --secret "mysecret"
 
 To output in CSV format:
 
-    bin/get-all-groups --csv
+    bin/get-all-groups.py --csv
 
 Future Plans
 ------------
